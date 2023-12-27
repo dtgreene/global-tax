@@ -35,12 +35,19 @@ const CategoryRow = ({ category, depth = 0 }) => {
 
   const [collectedDrag, drag] = useDrag(() => ({
     type: dragId,
-    item: { id: category.id },
+    item: { id: category.id, name: category.name },
   }));
 
   const [collectedDrop, drop] = useDrop(() => ({
     accept: dragId,
     collect: (monitor) => ({ hovered: monitor.isOver() }),
+    drop: (item) => {
+      if (item.id !== category.id) {
+        console.log(
+          `You dropped "${item.name} (ID: ${item.id})" onto "${category.name} (ID: ${category.id})"`
+        );
+      }
+    },
   }));
 
   const children = category.children ?? [];
@@ -87,11 +94,7 @@ const CategoryRow = ({ category, depth = 0 }) => {
         'bg-zinc-100': collectedDrop.hovered,
       })}
     >
-      <div
-        ref={drop}
-        className="flex items-center gap-4 p-2"
-        {...collectedDrop}
-      >
+      <div ref={drop} className="flex items-center gap-4 p-2">
         <div className="relative">
           {!isBottom && (
             <div className={clsx('__border-color', styles.hierarchyLine)}></div>
