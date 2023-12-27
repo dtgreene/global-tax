@@ -1,0 +1,35 @@
+.base {
+  @apply rounded-sm px-4 py-2 transition-all disabled:opacity-50 disabled:cursor-default;
+}
+
+.outlined {
+  @apply border border-zinc-600;
+}
+
+.outlined:not(:disabled) {
+  @apply hover:text-white hover:bg-zinc-600 hover:border-zinc-600;
+}
+
+.link {
+  @apply text-blue-600;
+}
+
+.link:not(:disabled) {
+  @apply hover:underline;
+}
+
+.primary {
+  @apply bg-emerald-600 text-white;
+}
+
+.primary:not(:disabled) {
+  @apply hover:bg-emerald-900;
+}
+
+.primaryOutlined {
+  @apply border text-emerald-600 border-emerald-600;
+}
+
+.primaryOutlined:not(:disabled) {
+  @apply hover:text-white hover:bg-emerald-600 hover:border-emerald-600;
+}

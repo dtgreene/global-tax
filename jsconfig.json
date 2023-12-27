@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@src/*": ["./src/*"],
+      "@components/*": ["./src/components/*"],
+      "@icons/*": ["./src/components/Icons/*"],
+      "@data/*": ["./src/data/scrubbed/*"]
+    }
+  }
+}

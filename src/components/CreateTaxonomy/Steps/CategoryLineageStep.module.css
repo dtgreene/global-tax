@@ -1,0 +1,6 @@
+.hierarchyLine {
+  @apply absolute border-l-2;
+  height: 26px;
+  left: calc(50% - 1px);
+  top: -30px;
+}
