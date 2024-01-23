@@ -8,6 +8,6 @@ export const globalTaxState = proxy({
 });
 
 export const createWizardState = proxy({
-  currentStep: 0,
+  currentStep: 1,
   nextStepDisabled: false,
 });

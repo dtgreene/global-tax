@@ -25,13 +25,7 @@ const filterOptions = (options, searchValue) => {
   );
 };
 
-export const AutoComplete = ({
-  value,
-  onChange,
-  options,
-  className,
-  ...otherProps
-}) => {
+export const AutoComplete = ({ value, onChange, options, ...otherProps }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const { refs, floatingStyles, context } = useFloating({
@@ -69,7 +63,7 @@ export const AutoComplete = ({
     : options;
 
   return (
-    <div className={className}>
+    <Fragment>
       <TextInput
         ref={refs.setReference}
         value={searchValue}
@@ -105,6 +99,6 @@ export const AutoComplete = ({
           </div>
         )}
       </div>
-    </div>
+    </Fragment>
   );
 };

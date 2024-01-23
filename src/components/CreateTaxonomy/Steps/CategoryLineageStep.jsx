@@ -11,12 +11,14 @@ import { AutoComplete } from '@components/AutoComplete';
 import { CheckBox } from '@components/CheckBox';
 import { TextInput } from '@components/TextInput';
 
-import XMarkIcon from '@icons/XMark';
+import EllipsisVerticalIcon from '@icons/EllipsisVertical';
 import ChevronRightIcon from '@icons/ChevronRight';
 import TrashIcon from '@icons/Trash';
 
 import { globalTaxState, createWizardState } from '../state';
 import styles from './CategoryLineageStep.module.css';
+import { PopupButton } from '@src/components/PopupButton';
+import { ConfirmModal } from '@src/components/ConfirmModal';
 
 const dragId = 'category-row';
 const data = Beer.concat(Wine);
@@ -54,7 +56,7 @@ const CategoryRow = ({ category, depth = 0 }) => {
   const hasChildren = children.length > 0;
   const nextDepth = depth + 1;
   const isBottom = depth === 0;
-  const isChecked = selectedCategories.includes(category.id);
+  const isSelected = selectedCategories.includes(category.id);
 
   const handleExpandClick = () => {
     setIsExpanded(!isExpanded);
@@ -72,25 +74,41 @@ const CategoryRow = ({ category, depth = 0 }) => {
   };
 
   const handleCheckBoxChange = () => {
-    if (isChecked) {
-      globalTaxState.selectedCategories =
-        globalTaxState.selectedCategories.filter((id) => id !== category.id);
+    const { selectedCategories } = globalTaxState;
+
+    if (isSelected) {
+      globalTaxState.selectedCategories = selectedCategories.filter(
+        (id) => id !== category.id
+      );
     } else {
+      selectedCategories.push(category.id);
+    }
+  };
+
+  const handleSelectClick = () => {
+    if (!isSelected) {
       globalTaxState.selectedCategories.push(category.id);
     }
   };
 
-  const handleDeleteClick = () => {
-    deleteCategory(category.id);
+  const handleSelectWithClick = () => {
+    selectDescendants(category);
+  };
+
+  const handleRemoveClick = () => {
+    deselectDescendants(category);
+
+    const { categories } = globalTaxState;
+    globalTaxState.categories = removeCategories(categories, [category.id]);
   };
 
   return (
     <div
       ref={rowRef}
-      className={clsx('min-w-fit', {
+      className={clsx('min-w-fit overflow-hidden', {
         'border-l-4 border-zinc-400': isBottom && isExpanded,
         'border-l-4 border-transparent': isBottom && !isExpanded,
-        'bg-emerald-50': isChecked,
+        'bg-emerald-50': isSelected,
         'bg-zinc-100': collectedDrop.hovered,
       })}
     >
@@ -99,19 +117,34 @@ const CategoryRow = ({ category, depth = 0 }) => {
           {!isBottom && (
             <div className={clsx('__border-color', styles.hierarchyLine)}></div>
           )}
-          <CheckBox value={isChecked} onChange={handleCheckBoxChange} />
+          <CheckBox value={isSelected} onChange={handleCheckBoxChange} />
         </div>
         <div
           ref={drag}
-          className="bg-zinc-100 border border-zinc-400 rounded px-2 py-1 flex items-center gap-2"
+          className="bg-zinc-100 border border-zinc-400 rounded px-2 py-1 flex items-center gap-1"
           {...collectedDrag}
         >
           <div>
             {category.name} (ID: {category.id})
           </div>
-          <button className="__icon-button" onClick={handleDeleteClick}>
-            <XMarkIcon />
-          </button>
+          <PopupButton
+            className="__icon-button"
+            content={<EllipsisVerticalIcon />}
+          >
+            <div className="flex flex-col">
+              <PopupButton.Option onClick={handleSelectClick}>
+                Select Category
+              </PopupButton.Option>
+              {hasChildren && (
+                <PopupButton.Option onClick={handleSelectWithClick}>
+                  Select Category (with descendants)
+                </PopupButton.Option>
+              )}
+              <PopupButton.Option onClick={handleRemoveClick}>
+                Remove Category {hasChildren && '(with descendants)'}
+              </PopupButton.Option>
+            </div>
+          </PopupButton>
         </div>
         {hasChildren && (
           <button
@@ -155,10 +188,7 @@ export const CategoryLineageStep = () => {
       return categories;
     }
 
-    const lowerSearch = searchValue.toLowerCase();
-    return recurseCategories(categories, (category) =>
-      getSearchedCategory(category, lowerSearch)
-    );
+    return searchCategories(categories, searchValue.toLowerCase());
   }, [categories, searchValue]);
 
   const metaData = useMemo(
@@ -172,11 +202,11 @@ export const CategoryLineageStep = () => {
   const handleCategoryChange = (value) => {
     setCategory(value);
 
+    const { categories } = globalTaxState;
     const foundCategory = data.find(({ id }) => id === value.id);
-    // TODO?: recursive duplicate checking
-    if (!globalTaxState.categories.find(({ id }) => id === foundCategory.id)) {
-      globalTaxState.categories =
-        globalTaxState.categories.concat(foundCategory);
+
+    if (!categories.find(({ id }) => id === foundCategory.id)) {
+      globalTaxState.categories = categories.concat(foundCategory);
     }
   };
 
@@ -204,7 +234,7 @@ export const CategoryLineageStep = () => {
             <button
               className="__icon-button"
               disabled={selectedCategories.length === 0}
-              onClick={deleteSelectedCategories}
+              // onClick={removeSelectedCategories}
             >
               <TrashIcon />
             </button>
@@ -243,107 +273,86 @@ function getCategoryCount(categories) {
     return 0;
   }
 
-  return categories.reduce((result, category) => {
-    if (category.children) {
-      result += getCategoryCount(category.children);
+  return categories.reduce((result, current) => {
+    if (current.children) {
+      result += getCategoryCount(current.children);
     }
 
     return result + 1;
   }, 0);
 }
 
-function deleteCategory(categoryId) {
-  const { selectedCategories, categories } = globalTaxState;
-
-  globalTaxState.categories = recurseCategories(categories, (category) =>
-    getDeletedCategory(category, [categoryId])
-  );
-  globalTaxState.selectedCategories = selectedCategories.filter(
-    (id) => id !== categoryId
-  );
-}
-
-function deleteSelectedCategories() {
-  const { selectedCategories, categories } = globalTaxState;
-
-  if (selectedCategories.length > 0) {
-    globalTaxState.categories = recurseCategories(categories, (category) =>
-      getDeletedCategory(category, selectedCategories)
+function flattenCategory(category) {
+  if (category.children) {
+    return category.children.reduce(
+      (result, current) => result.concat(flattenCategory(current)),
+      [category]
     );
-    globalTaxState.selectedCategories = [];
+  } else {
+    return [category];
   }
 }
 
-function recurseCategories(categories, operation) {
-  return categories.reduce((result, category) => {
-    const value = operation(category);
+function selectDescendants(category) {
+  const { selectedCategories } = globalTaxState;
+  const flattenedCategory = flattenCategory(category);
 
-    if (value) {
-      result.push(value);
+  if (!selectedCategories.includes(category.id)) {
+    selectedCategories.push(category.id);
+  }
+
+  flattenedCategory.forEach((child) => {
+    if (!selectedCategories.includes(child.id)) {
+      selectedCategories.push(child.id);
+    }
+  });
+}
+
+function deselectDescendants(category) {
+  const { selectedCategories } = globalTaxState;
+  const flattenedCategory = flattenCategory(category);
+
+  globalTaxState.selectedCategories = selectedCategories.filter((id) => {
+    return (
+      !flattenedCategory.find((child) => id === child.id) && id !== category.id
+    );
+  });
+}
+
+function removeCategories(categories, ids) {
+  return categories.reduce((result, current) => {
+    // Stop here if the current category is matched
+    if (ids.includes(current.id)) return result;
+    // Otherwise, apply the reduction to the children
+    if (current.children) {
+      const children = removeCategories(current.children, ids);
+
+      if (children.length > 0) {
+        result.push({ ...current, children });
+      }
+    } else {
+      result.push(current);
     }
 
     return result;
   }, []);
 }
 
-function getSearchedCategory(category, value) {
-  const { id, name, children, ...other } = category;
-  const selfMatch =
-    id.toLowerCase().includes(value) || name.toLowerCase().includes(value);
-  const result = { id, name, ...other };
+function searchCategories(categories, searchValue) {
+  return categories.reduce((result, current) => {
+    const { id, name } = current;
+    const searchMatch =
+      id.toLowerCase().includes(searchValue) ||
+      name.toLowerCase().includes(searchValue);
 
-  if (children) {
-    result.children = recurseCategories(children, (child) =>
-      getSearchedCategory(child, value)
-    );
+    if (current.children) {
+      const children = searchCategories(current.children, searchValue);
 
-    if (result.children.length === 0) {
-      delete result.children;
+      result.push({ ...current, ...(children.length > 0 && { children }) });
+    } else if (searchMatch) {
+      result.push(current);
     }
-  }
 
-  if (selfMatch || result.children) {
     return result;
-  }
-
-  return null;
-}
-
-function getDeletedCategory(category, ids) {
-  const { id, name, children, ...other } = category;
-  const result = { id, name, ...other };
-
-  if (ids.includes(id)) {
-    return null;
-  }
-
-  if (children) {
-    result.children = recurseCategories(children, (child) =>
-      getDeletedCategory(child, ids)
-    );
-
-    if (result.children.length === 0) {
-      delete result.children;
-    }
-  }
-
-  return result;
-}
-
-function getCategory(category, id) {
-  if (category.id === id) {
-    return category;
-  }
-
-  if (category.children) {
-    for (let i = 0; i < category.children.length; i++) {
-      const childResult = getCategory(category.children[i]);
-
-      if (childResult) {
-        return childResult;
-      }
-    }
-  }
-
-  return null;
+  }, []);
 }
