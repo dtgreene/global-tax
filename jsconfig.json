@@ -4,6 +4,7 @@
       "@src/*": ["./src/*"],
       "@components/*": ["./src/components/*"],
       "@icons/*": ["./src/components/Icons/*"],
+      "@hooks/*": ["./src/hooks/*"],
       "@data/*": ["./src/data/scrubbed/*"]
     }
   }
