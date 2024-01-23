@@ -96,10 +96,9 @@ const CategoryRow = ({ category, depth = 0 }) => {
   };
 
   const handleRemoveClick = () => {
-    deselectDescendants(category);
-
     const { categories } = globalTaxState;
     globalTaxState.categories = removeCategories(categories, [category.id]);
+    deselectDeleted();
   };
 
   return (
@@ -308,22 +307,24 @@ function selectDescendants(category) {
   });
 }
 
-function deselectDescendants(category) {
-  const { selectedCategories } = globalTaxState;
-  const flattenedCategory = flattenCategory(category);
+// Removes any selected categories that no longer exist
+function deselectDeleted() {
+  const { selectedCategories, categories } = globalTaxState;
 
-  globalTaxState.selectedCategories = selectedCategories.filter((id) => {
-    return (
-      !flattenedCategory.find((child) => id === child.id) && id !== category.id
-    );
-  });
+  const flattenedCategories = categories.reduce(
+    (result, category) => result.concat(flattenCategory(category)),
+    []
+  );
+
+  globalTaxState.selectedCategories = selectedCategories.filter((id) =>
+    flattenedCategories.find((child) => id === child.id)
+  );
 }
 
 function removeCategories(categories, ids) {
   return categories.reduce((result, current) => {
     // Stop here if the current category is matched
     if (ids.includes(current.id)) return result;
-    // Otherwise, apply the reduction to the children
     if (current.children) {
       const children = removeCategories(current.children, ids);
 
@@ -341,15 +342,17 @@ function removeCategories(categories, ids) {
 function searchCategories(categories, searchValue) {
   return categories.reduce((result, current) => {
     const { id, name } = current;
-    const searchMatch =
+    const currentMatch =
       id.toLowerCase().includes(searchValue) ||
       name.toLowerCase().includes(searchValue);
 
     if (current.children) {
       const children = searchCategories(current.children, searchValue);
 
-      result.push({ ...current, ...(children.length > 0 && { children }) });
-    } else if (searchMatch) {
+      if (children.length > 0) {
+        result.push({ ...current, children });
+      }
+    } else if (currentMatch) {
       result.push(current);
     }
 
