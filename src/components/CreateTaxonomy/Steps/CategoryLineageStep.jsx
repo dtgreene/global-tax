@@ -303,7 +303,7 @@ export const CategoryLineageStep = () => {
             <div className="__text-muted">Nothing to see here</div>
           ) : (
             <DndProvider backend={HTML5Backend}>
-              <div className="border border-zinc-300">
+              <div className="border border-zinc-300 min-w-min">
                 {filteredCategories.map((category) => (
                   <div
                     key={category.id}
