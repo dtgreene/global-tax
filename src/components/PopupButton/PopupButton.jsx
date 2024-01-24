@@ -23,6 +23,12 @@ export const PopupButton = ({ className, content, children }) => {
     setIsOpen(true);
   };
 
+  const handleMenuClick = () => {
+    // "Catch" the bubbling up click events to close the menu when an option is
+    // clicked.
+    setIsOpen(false);
+  };
+
   return (
     <Fragment>
       <button
@@ -43,6 +49,7 @@ export const PopupButton = ({ className, content, children }) => {
           <div
             className="border bg-white rounded shadow overflow-y-auto"
             style={transitionStyles}
+            onClick={handleMenuClick}
           >
             {children}
           </div>

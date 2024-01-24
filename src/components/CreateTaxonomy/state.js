@@ -5,6 +5,8 @@ export const globalTaxState = proxy({
   description: '',
   categories: [],
   selectedCategories: [],
+  pendingMove: null,
+  showPendingMove: false
 });
 
 export const createWizardState = proxy({

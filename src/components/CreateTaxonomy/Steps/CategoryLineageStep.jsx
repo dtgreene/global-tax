@@ -37,17 +37,23 @@ const CategoryRow = ({ category, depth = 0 }) => {
 
   const [collectedDrag, drag] = useDrag(() => ({
     type: dragId,
-    item: { id: category.id, name: category.name },
+    item: { id: category.id },
   }));
 
   const [collectedDrop, drop] = useDrop(() => ({
     accept: dragId,
     collect: (monitor) => ({ hovered: monitor.isOver() }),
     drop: (item) => {
-      if (item.id !== category.id) {
-        console.log(
-          `You dropped "${item.name} (ID: ${item.id})" onto "${category.name} (ID: ${category.id})"`
-        );
+      const dropCategory = getDropCategory(item, category);
+
+      if (dropCategory) {
+        const message = `Are you sure you want to make ${dropCategory.name} (ID: ${dropCategory.id}) a descendant of ${category.name} (ID: ${category.id})?`;
+        globalTaxState.pendingMove = {
+          from: dropCategory.id,
+          to: category.id,
+          message,
+        };
+        globalTaxState.showPendingMove = true;
       }
     },
   }));
@@ -104,11 +110,10 @@ const CategoryRow = ({ category, depth = 0 }) => {
   return (
     <div
       ref={rowRef}
-      className={clsx('min-w-fit overflow-hidden', {
+      className={clsx('min-w-fit overflow-hidden transition-colors', {
         'border-l-4 border-zinc-400': isBottom && isExpanded,
         'border-l-4 border-transparent': isBottom && !isExpanded,
         'bg-emerald-50': isSelected,
-        'bg-zinc-100': collectedDrop.hovered,
       })}
     >
       <div ref={drop} className="flex items-center gap-4 p-2">
@@ -120,7 +125,12 @@ const CategoryRow = ({ category, depth = 0 }) => {
         </div>
         <div
           ref={drag}
-          className="bg-zinc-100 border border-zinc-400 rounded px-2 py-1 flex items-center gap-1"
+          className={clsx(
+            'bg-zinc-100 border border-zinc-400 rounded px-2 py-1 flex items-center gap-1 transition-colors',
+            {
+              'bg-zinc-300': collectedDrop.hovered,
+            }
+          )}
           {...collectedDrag}
         >
           <div>
@@ -174,7 +184,8 @@ const CategoryRow = ({ category, depth = 0 }) => {
 };
 
 export const CategoryLineageStep = () => {
-  const { categories, selectedCategories } = useSnapshot(globalTaxState);
+  const { categories, selectedCategories, showPendingMove, pendingMove } =
+    useSnapshot(globalTaxState);
   const [category, setCategory] = useState(null);
   const [searchValue, setSearchValue] = useState('');
 
@@ -213,8 +224,51 @@ export const CategoryLineageStep = () => {
     setSearchValue(event.target.value);
   };
 
+  const handlePendingMoveClose = () => {
+    globalTaxState.showPendingMove = false;
+  };
+
+  const handlePendingMoveConfirm = () => {
+    try {
+      const {
+        categories,
+        pendingMove: { from, to },
+      } = globalTaxState;
+
+      const fromCategory = findCategory(categories, from);
+      const parentCategory = findCategory(categories, fromCategory.parent_id);
+      const toCategory = findCategory(categories, to);
+
+      if (!fromCategory || !toCategory || !parentCategory) {
+        throw new Error('Could not locate all categories');
+      }
+
+      if (toCategory.children) {
+        toCategory.children.push(fromCategory);
+      } else {
+        toCategory.children = [fromCategory];
+      }
+
+      // Remove the child from the original parent
+      parentCategory.children = parentCategory.children.filter(
+        (child) => child.id !== fromCategory.id
+      );
+    } catch (error) {
+      console.error(`DND move failed: ${error}`);
+    }
+
+    globalTaxState.showPendingMove = false;
+  };
+
   return (
     <Fragment>
+      <ConfirmModal
+        active={showPendingMove}
+        onClose={handlePendingMoveClose}
+        onConfirm={handlePendingMoveConfirm}
+      >
+        {pendingMove && pendingMove.message}
+      </ConfirmModal>
       <AutoComplete
         value={category}
         onChange={handleCategoryChange}
@@ -266,6 +320,39 @@ export const CategoryLineageStep = () => {
     </Fragment>
   );
 };
+
+function getDropCategory(dropItem, toCategory) {
+  // Look up the full category object from the thinner, dropped item
+  const { categories } = globalTaxState;
+  const dropCategory = findCategory(categories, dropItem.id);
+  const isValid =
+    dropCategory &&
+    dropCategory.id !== toCategory.id &&
+    dropCategory.parent_id !== toCategory.id &&
+    !isChild(dropCategory, toCategory.id);
+
+  // - Cant drop on self
+  // - Cant drop to same parent
+  // - Cant drop into own descendants
+
+  return isValid ? dropCategory : null;
+}
+
+function isChild(category, id) {
+  return Boolean(flattenCategory(category).find((child) => child.id === id));
+}
+
+function findCategory(categories, id) {
+  for (let i = 0; i < categories.length; i++) {
+    const category = categories[i];
+
+    if (category.id === id) return category;
+    if (category.children) {
+      const childrenResult = findCategory(category.children, id);
+      if (childrenResult) return childrenResult;
+    }
+  }
+}
 
 function getCategoryCount(categories) {
   if (categories.length === 0) {

@@ -18,7 +18,7 @@ export const BaseModal = ({ title, visible, onClose, children }) => {
     >
       <div
         className={clsx(
-          'min-w-[400px] p-8 bg-zinc-100 rounded-lg transition-transform',
+          'min-w-[300px] max-w-[600px] p-8 bg-zinc-100 rounded-lg transition-transform',
           {
             'translate-y-0': visible,
             '-translate-y-10': !visible,
