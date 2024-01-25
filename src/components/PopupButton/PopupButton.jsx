@@ -6,6 +6,7 @@ import {
   useInteractions,
   useTransitionStyles,
   autoUpdate,
+  autoPlacement,
 } from '@floating-ui/react';
 
 export const PopupButton = ({ className, content, children }) => {
@@ -15,7 +16,8 @@ export const PopupButton = ({ className, content, children }) => {
     onOpenChange: setIsOpen,
     placement: 'bottom-start',
     strategy: 'absolute',
-    whileElementsMounted: autoUpdate
+    whileElementsMounted: autoUpdate,
+    middleware: [autoPlacement()]
   });
   const dismiss = useDismiss(context);
   const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
