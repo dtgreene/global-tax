@@ -298,7 +298,7 @@ export const CategoryLineageStep = () => {
             <span>{metaData.lineageCount} lineages</span>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 pt-0">
+        <div className="flex-1 overflow-y-auto p-6 pt-0 relative">
           {filteredCategories.length === 0 ? (
             <div className="__text-muted">Nothing to see here</div>
           ) : (
