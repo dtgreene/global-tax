@@ -1,7 +1,13 @@
+// The workflow I've been using is to paste these two functions into a browser
+// console and then call scrub() with some catalog data.
+
 function getId() {
   return '_' + Math.random().toString(36).slice(2, 9);
 }
 
+// Trims the input data and creates new ids for each category. Old ids are
+// replaced in relevant fields as well so things like the lineage fields still
+// make sense.
 function scrub(input) {
   let idMap = {};
   let lineageMap = {};
