@@ -149,6 +149,9 @@ const CategoryRow = ({ category, depth = 0 }) => {
                   Select Category (with descendants)
                 </PopupButton.Option>
               )}
+              <PopupButton.Option disabled={true}>
+                Move Selected Here (with descendants)
+              </PopupButton.Option>
               <PopupButton.Option onClick={handleRemoveClick}>
                 Remove Category {hasChildren && '(with descendants)'}
               </PopupButton.Option>

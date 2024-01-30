@@ -1,0 +1,7 @@
+.popupOption {
+  @apply px-3 py-2 min-w-[200px] text-left disabled:opacity-50 disabled:cursor-default transition-colors;
+}
+
+.popupOption:not(:disabled) {
+  @apply hover:bg-zinc-100;
+}

@@ -9,6 +9,8 @@ import {
   autoPlacement,
 } from '@floating-ui/react';
 
+import styles from './PopupButton.module.css';
+
 export const PopupButton = ({ className, content, children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { refs, floatingStyles, context } = useFloating({
@@ -17,7 +19,7 @@ export const PopupButton = ({ className, content, children }) => {
     placement: 'bottom-start',
     strategy: 'absolute',
     whileElementsMounted: autoUpdate,
-    middleware: [autoPlacement()]
+    middleware: [autoPlacement()],
   });
   const dismiss = useDismiss(context);
   const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
@@ -64,13 +66,7 @@ export const PopupButton = ({ className, content, children }) => {
 };
 
 PopupButton.Option = ({ className, children, ...otherProps }) => (
-  <button
-    className={clsx(
-      'px-3 py-2 min-w-[200px] text-left hover:bg-zinc-100 transition-colors',
-      className
-    )}
-    {...otherProps}
-  >
+  <button className={clsx(styles.popupOption, className)} {...otherProps}>
     {children}
   </button>
 );
